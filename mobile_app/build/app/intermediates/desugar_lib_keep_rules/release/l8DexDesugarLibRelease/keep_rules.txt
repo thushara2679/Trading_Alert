@@ -1,0 +1,40 @@
+-keep enum j$.time.DayOfWeek {
+}
+-keep class j$.time.Instant {
+  public long toEpochMilli();
+}
+-keep class j$.time.LocalDateTime {
+  public static j$.time.LocalDateTime parse(java.lang.CharSequence);
+  public j$.time.LocalDateTime plusDays(long);
+  public j$.time.LocalDateTime plusWeeks(long);
+}
+-keep class j$.time.ZoneId {
+  public static j$.time.ZoneId of(java.lang.String);
+}
+-keep class j$.time.ZonedDateTime {
+  public int getDayOfMonth();
+  public j$.time.DayOfWeek getDayOfWeek();
+  public int getHour();
+  public int getMinute();
+  public int getMonthValue();
+  public int getNano();
+  public int getSecond();
+  public int getYear();
+  public static j$.time.ZonedDateTime now(j$.time.ZoneId);
+  public static j$.time.ZonedDateTime of(int, int, int, int, int, int, int, j$.time.ZoneId);
+  public static j$.time.ZonedDateTime of(j$.time.LocalDateTime, j$.time.ZoneId);
+  public j$.time.ZonedDateTime plusDays(long);
+}
+-keep interface j$.time.chrono.ChronoZonedDateTime {
+  public boolean isBefore(j$.time.chrono.ChronoZonedDateTime);
+  public j$.time.Instant toInstant();
+}
+-keep class j$.time.format.DateTimeFormatter {
+  public java.lang.String format(j$.time.temporal.TemporalAccessor);
+  j$.time.format.DateTimeFormatter ISO_LOCAL_DATE_TIME;
+}
+-keep interface j$.time.temporal.TemporalAccessor {
+}
+-keep class j$.util.DesugarTimeZone {
+  public static java.util.TimeZone getTimeZone(java.lang.String);
+}
