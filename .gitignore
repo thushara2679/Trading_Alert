@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+dist/
+build/
+*.egg-info/
+
+# Data & Models (Exclude bulky data)
+stock_data_cache/
+test_data_cache/
+test_models_onnx/
+trained_models_onnx/
+New folder/
+empty_models_dir/
+empty_test_dir/
+
+# Archives
+*.rar
+*.zip
+*.7z
+*.tar.gz
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
