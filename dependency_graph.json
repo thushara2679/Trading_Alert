@@ -1,0 +1,116 @@
+{
+    "project_name": "Trading_Alerts",
+    "version": "1.1.0",
+    "nodes": [
+        {
+            "id": "stock_trainer.py",
+            "type": "process",
+            "description": "Main GUI Application Entry Point (Orchestrator)",
+            "depends_on": [
+                "ml.stock_engine",
+                "gui.styles",
+                "gui.training_tab",
+                "gui.simulation_tab"
+            ],
+            "used_by": [],
+            "status": "active"
+        },
+        {
+            "id": "gui.styles",
+            "type": "ui_component",
+            "description": "Midnight Indigo theme and ttk style configuration",
+            "depends_on": [],
+            "used_by": [
+                "stock_trainer.py",
+                "gui.training_tab",
+                "gui.simulation_tab"
+            ],
+            "status": "active"
+        },
+        {
+            "id": "gui.training_tab",
+            "type": "ui_component",
+            "description": "Data & Training tab UI and event logic",
+            "depends_on": [
+                "gui.styles"
+            ],
+            "used_by": [
+                "stock_trainer.py"
+            ],
+            "status": "active"
+        },
+        {
+            "id": "gui.simulation_tab",
+            "type": "ui_component",
+            "description": "Simulation tab UI and inference logic",
+            "depends_on": [
+                "gui.styles",
+                "utils.forecast_panel"
+            ],
+            "used_by": [
+                "stock_trainer.py"
+            ],
+            "status": "active"
+        },
+        {
+            "id": "ml.stock_engine",
+            "type": "procedure",
+            "description": "Core ML Engine logic (Smart Fetch & Bulk Export)",
+            "depends_on": [
+                "backend.data_fetcher",
+                "backend.data_loader",
+                "utils.validation"
+            ],
+            "used_by": [
+                "stock_trainer.py"
+            ],
+            "status": "active"
+        },
+        {
+            "id": "utils.forecast_panel",
+            "type": "ui_component",
+            "description": "Multi-horizon forecast visualization widget",
+            "depends_on": [],
+            "used_by": [
+                "gui.simulation_tab"
+            ],
+            "status": "active"
+        },
+        {
+            "id": "backend.data_fetcher",
+            "type": "procedure",
+            "description": "TradingView data fetching service (Thread-Safe)",
+            "depends_on": [
+                "utils.validation"
+            ],
+            "used_by": [
+                "ml.stock_engine",
+                "stock_trainer.py"
+            ],
+            "status": "active"
+        },
+        {
+            "id": "backend.data_loader",
+            "type": "procedure",
+            "description": "Local data loading and validation",
+            "depends_on": [
+                "utils.validation"
+            ],
+            "used_by": [
+                "ml.stock_engine"
+            ],
+            "status": "active"
+        },
+        {
+            "id": "utils.validation",
+            "type": "function",
+            "description": "Data integrity validation helpers",
+            "depends_on": [],
+            "used_by": [
+                "backend.data_fetcher",
+                "backend.data_loader"
+            ],
+            "status": "active"
+        }
+    ]
+}
