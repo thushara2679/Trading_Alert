@@ -1,0 +1,23 @@
+{
+  "symbol": "AINS.N0000",
+  "version": "1.0",
+  "type": "split_prob_json",
+  "inputs": [
+    "Vol_Z_1H",
+    "Vol_Z_4H",
+    "Vol_Z_1D",
+    "Elasticity_1H",
+    "day_of_week",
+    "hour_of_day"
+  ],
+  "models": [
+    "model_4H.json",
+    "model_2D.json",
+    "model_5D.json"
+  ],
+  "thresholds": {
+    "4H": 0.015,
+    "2D": 0.03,
+    "5D": 0.05
+  }
+}
