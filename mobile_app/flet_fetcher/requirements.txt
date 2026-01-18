@@ -1,0 +1,12 @@
+# Flet Data Fetcher Requirements
+# Uses tvdatafeed for direct TradingView data access
+
+# Core
+flet>=0.21.0
+
+# TradingView Data Feed
+tvdatafeed @ git+https://github.com/rongardF/tvdatafeed.git
+
+# Data Processing
+pandas>=2.0.0
+numpy>=1.24.0

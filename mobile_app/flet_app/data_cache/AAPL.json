@@ -1,0 +1,22 @@
+{
+  "symbol": "AAPL",
+  "exchange": "NASDAQ",
+  "timestamp": "2026-01-19T01:20:05.296975",
+  "ohlcv": {
+    "open": 256.16,
+    "high": 256.46,
+    "low": 255.14,
+    "close": 255.48,
+    "volume": 603270.0
+  },
+  "features": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    1.0,
+    1.0
+  ],
+  "bars_count": 10,
+  "is_live": true
+}

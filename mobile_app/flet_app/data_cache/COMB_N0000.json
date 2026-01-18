@@ -1,0 +1,29 @@
+{
+  "symbol": "COMB.N0000",
+  "exchange": "CSELK",
+  "timestamp": "2026-01-19T03:26:51.471806",
+  "ohlcv": {
+    "open": 224.5,
+    "high": 225.0,
+    "low": 224.0,
+    "close": 225.0,
+    "volume": 92827.0
+  },
+  "features": {
+    "Elasticity_1H": 0.0044444444444444444,
+    "Vol_Z_1H": -0.409100395886325,
+    "Vol_Z_4H": -0.36190574713469553,
+    "Vol_Z_1D": -0.3016753169745951,
+    "day_of_week": 4,
+    "hour_of_day": 13,
+    "Vol_Z": -0.409100395886325,
+    "Elasticity": 0.0044444444444444444,
+    "Open": 224.5,
+    "High": 225.0,
+    "Low": 224.0,
+    "Close": 225.0,
+    "Volume": 92827.0
+  },
+  "bars_count": 50,
+  "is_live": true
+}

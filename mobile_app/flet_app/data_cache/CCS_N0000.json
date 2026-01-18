@@ -1,0 +1,29 @@
+{
+  "symbol": "CCS.N0000",
+  "exchange": "CSELK",
+  "timestamp": "2026-01-19T03:26:50.755342",
+  "ohlcv": {
+    "open": 114.0,
+    "high": 114.0,
+    "low": 113.75,
+    "close": 113.75,
+    "volume": 5193.0
+  },
+  "features": {
+    "Elasticity_1H": 0.002197802197802198,
+    "Vol_Z_1H": -0.2516060622653846,
+    "Vol_Z_4H": -0.43281701092989433,
+    "Vol_Z_1D": 0.1894755040278442,
+    "day_of_week": 4,
+    "hour_of_day": 13,
+    "Vol_Z": -0.2516060622653846,
+    "Elasticity": 0.002197802197802198,
+    "Open": 114.0,
+    "High": 114.0,
+    "Low": 113.75,
+    "Close": 113.75,
+    "Volume": 5193.0
+  },
+  "bars_count": 50,
+  "is_live": true
+}

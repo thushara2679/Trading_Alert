@@ -1,0 +1,29 @@
+{
+  "symbol": "DFCC.N0000",
+  "exchange": "CSELK",
+  "timestamp": "2026-01-19T03:26:52.792617",
+  "ohlcv": {
+    "open": 160.0,
+    "high": 161.5,
+    "low": 160.0,
+    "close": 160.75,
+    "volume": 75304.0
+  },
+  "features": {
+    "Elasticity_1H": 0.00933125972006221,
+    "Vol_Z_1H": -0.015964529873114527,
+    "Vol_Z_4H": -0.7260609256431885,
+    "Vol_Z_1D": -0.6331164949700072,
+    "day_of_week": 4,
+    "hour_of_day": 13,
+    "Vol_Z": -0.015964529873114527,
+    "Elasticity": 0.00933125972006221,
+    "Open": 160.0,
+    "High": 161.5,
+    "Low": 160.0,
+    "Close": 160.75,
+    "Volume": 75304.0
+  },
+  "bars_count": 50,
+  "is_live": true
+}

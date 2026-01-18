@@ -1,0 +1,29 @@
+{
+  "symbol": "DIAL.N0000",
+  "exchange": "CSELK",
+  "timestamp": "2026-01-19T03:26:53.616596",
+  "ohlcv": {
+    "open": 33.6,
+    "high": 33.7,
+    "low": 33.5,
+    "close": 33.5,
+    "volume": 47388.0
+  },
+  "features": {
+    "Elasticity_1H": 0.005970149253731428,
+    "Vol_Z_1H": -0.4118549719912,
+    "Vol_Z_4H": -0.3999343534009594,
+    "Vol_Z_1D": -0.30762215179441593,
+    "day_of_week": 4,
+    "hour_of_day": 13,
+    "Vol_Z": -0.4118549719912,
+    "Elasticity": 0.005970149253731428,
+    "Open": 33.6,
+    "High": 33.7,
+    "Low": 33.5,
+    "Close": 33.5,
+    "Volume": 47388.0
+  },
+  "bars_count": 50,
+  "is_live": true
+}
