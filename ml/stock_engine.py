@@ -78,14 +78,60 @@ class StockEngine:
         try:
             from backend.data_fetcher import TvDataFetcher
             fetcher = TvDataFetcher(username=self.username, password=self.password)
-            results = {}
-            results['1D'] = fetcher.fetch_data(symbol, exchange, 1000, 'daily')
-            results['4H'] = fetcher.fetch_data(symbol, exchange, 2000, '4h')
-            results['1H'] = fetcher.fetch_data(symbol, exchange, 4000, '1h')
             
-            for timeframe, df in results.items():
-                if df is not None and not df.empty:
-                    df.to_csv(os.path.join(self.data_dir, f"{symbol}_{timeframe}.csv"))
+            configs = [
+                ('1D', 'daily', 1000),
+                ('4H', '4h', 2000),
+                ('1H', '1h', 4000)
+            ]
+            
+            for tf_name, interval, max_bars in configs:
+                csv_path = os.path.join(self.data_dir, f"{symbol}_{tf_name}.csv")
+                
+                # Default: Fetch full history if no cache
+                fetch_bars = max_bars
+                existing_df = None
+                
+                if os.path.exists(csv_path):
+                    try:
+                        existing_df = pd.read_csv(csv_path, index_col=0, parse_dates=True)
+                        if not existing_df.empty:
+                            last_date = existing_df.index[-1]
+                            # Calculate missing bars
+                            delta = datetime.now() - last_date
+                            hours_missing = delta.total_seconds() / 3600
+                            
+                            if tf_name == '1D': est_bars = delta.days
+                            elif tf_name == '4H': est_bars = hours_missing / 4
+                            else: est_bars = hours_missing
+                            
+                            # Add 20% buffer + 5 bars safety
+                            fetch_bars = int(est_bars * 1.2) + 5
+                            
+                            # Cap at max_bars, ensure at least 1
+                            fetch_bars = max(1, min(fetch_bars, max_bars))
+                            
+                            # Optimization: If very recent, barely fetch anything (but fetch a bit for live candle)
+                            if fetch_bars < 2: fetch_bars = 5 
+                    except Exception:
+                        print(f"⚠️ Corrupt cache for {symbol} {tf_name}, re-fetching full.")
+                        existing_df = None
+
+                # Fetch from TV
+                new_df = fetcher.fetch_data(symbol, exchange, fetch_bars, interval)
+                
+                if new_df is not None and not new_df.empty:
+                    if existing_df is not None:
+                        # Merge and Deduplicate
+                        combined = pd.concat([existing_df, new_df])
+                        combined = combined[~combined.index.duplicated(keep='last')]
+                        combined.sort_index(inplace=True)
+                        final_df = combined
+                    else:
+                        final_df = new_df
+                        
+                    final_df.to_csv(csv_path)
+                    
             return True, "Success"
         except Exception as e:
             return False, f"Error: {str(e)}"
@@ -111,8 +157,8 @@ class StockEngine:
         df = df_1h.copy().rename(columns={'Vol_Z': 'Vol_Z_1H', 'Elasticity': 'Elasticity_1H'})
         for name, d in [('1D', df_1d), ('4H', df_4h)]:
             if not d.empty and 'Vol_Z' in d.columns:
-                res = d[['Vol_Z']].resample('1h').ffill()
-                df[f'Vol_Z_{name}'] = res['Vol_Z']
+                # Use reindex to align lower timeframe to 1H index with forward fill
+                df[f'Vol_Z_{name}'] = d['Vol_Z'].reindex(df.index, method='ffill').fillna(0)
             else:
                 df[f'Vol_Z_{name}'] = 0
         return df
@@ -127,8 +173,12 @@ class StockEngine:
                 self.calculate_features(df_1d)
             ).dropna()
             
+            # Debugging Data Sufficiency
+            # print(f"DEBUG: {symbol} - 1H:{len(df_1h)} 4H:{len(df_4h)} 1D:{len(df_1d)} -> Merged:{len(df_model)}")
+            
             df_model = self._create_targets(df_model)
-            if len(df_model) < 50: return False, "Insufficient data"
+            if len(df_model) < 50: 
+                return False, f"Insufficient data (Rows: {len(df_model)}). Need 50+. 1H:{len(df_1h)}, 4H:{len(df_4h)}, 1D:{len(df_1d)}"
             
             X = df_model[self.FEATURES].values
             
@@ -166,9 +216,12 @@ class StockEngine:
         dfs = {}
         for k, v in paths.items():
             p = os.path.join(self.data_dir, v)
-            if not os.path.exists(p): raise FileNotFoundError(v)
-            dfs[k] = pd.read_csv(p, index_col=0, parse_dates=True)
-        return dfs['1D'], dfs['4H'], dfs['1H']
+            if not os.path.exists(p): 
+                # print(f"⚠️ Warning: Missing data for {symbol} {k}") # Optional Log
+                dfs[k] = pd.DataFrame() # Return empty DF instead of crashing
+            else:
+                dfs[k] = pd.read_csv(p, index_col=0, parse_dates=True)
+        return dfs.get('1D', pd.DataFrame()), dfs.get('4H', pd.DataFrame()), dfs.get('1H', pd.DataFrame())
     
     def run_inference(self, symbol: str) -> Tuple[bool, Dict[str, Any]]:
         try:
@@ -221,6 +274,33 @@ class StockEngine:
                     sym = f.replace("_4H.json", "")
                     found.add(sym)
         return list(found)
+
+    def export_all_models(self) -> str:
+        """
+        Exports all trained models to a master 'mobile_exports' directory.
+        Returns the absolute path to the export directory.
+        """
+        master_export_dir = os.path.join(self.model_dir, "mobile_exports")
+        if os.path.exists(master_export_dir):
+            shutil.rmtree(master_export_dir)
+        os.makedirs(master_export_dir)
+        
+        trained_symbols = self.get_trained_models()
+        valid_count = 0
+        
+        for symbol in trained_symbols:
+            try:
+                pkg_path = self.export_mobile_package(symbol)
+                dest_path = os.path.join(master_export_dir, f"{symbol}_pkg")
+                shutil.copytree(pkg_path, dest_path)
+                valid_count += 1
+            except Exception as e:
+                print(f"⚠️ Failed to export {symbol}: {e}")
+                
+        if valid_count == 0:
+            raise ValueError("No valid models found to export.")
+            
+        return master_export_dir
 
     def export_mobile_package(self, symbol: str) -> str:
         pkg_dir = os.path.join(self.model_dir, f"{symbol}_mobile_pkg")

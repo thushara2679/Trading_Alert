@@ -70,6 +70,7 @@ class StockTrainerApp(tk.Tk):
             on_train_all=self._on_train_all,
             on_save_credentials=self._on_save_credentials,
             on_update_stock_list=self.update_stock_list,
+            on_bulk_export=self._on_bulk_export_all,
             username_var=self.username_var,
             password_var=self.password_var
         )
@@ -103,6 +104,7 @@ class StockTrainerApp(tk.Tk):
     def _on_fetch_all(self): self._run_thread(self._thread_fetch, False)
     def _on_fetch_failed(self): self._run_thread(self._thread_fetch, True)
     def _on_train_all(self): self._run_thread(self._thread_train)
+    def _on_bulk_export_all(self): self._run_thread(self._thread_bulk_export)
 
     def _run_thread(self, target, *args):
         """Helper to run background tasks."""
@@ -152,16 +154,42 @@ class StockTrainerApp(tk.Tk):
             self._post_msg("status", "⚠️ No stocks to fetch. Load CSV first.")
             return
 
-        for i, item in enumerate(to_process):
-            self._post_msg("status", f"📡 Fetching {i+1}/{len(to_process)}: {item['symbol']}")
-            self._post_msg("tree", id=item["id"], col="Data Status", val="Fetching...")
+        import concurrent.futures
+        max_workers = 4
+        total = len(to_process)
+        completed_count = 0
+        lock = threading.Lock()
+
+        self._post_msg("status", f"🚀 Starting Parallel Fetch ({max_workers} threads)...")
+
+        def _fetch_worker(item):
+            nonlocal completed_count
             
+            # Update per-item status to specific thread activity
+            self._post_msg("tree", id=item["id"], col="Data Status", val="⏳ Queued...")
+            
+            # Fetch
             success, msg = self.engine.fetch_data(item["symbol"], item["exchange"])
-            item["data_status"] = "Success" if success else "Failed"
-            self._post_msg("tree", id=item["id"], col="Data Status", val="Success" if success else f"Failed: {msg}")
-            self._post_msg("progress", val=((i+1)/len(to_process))*100)
+            
+            # Update Item UI
+            status_val = "Success" if success else "Failed"
+            result_msg = "Success" if success else f"Failed: {msg}"
+            item["data_status"] = status_val
+            
+            self._post_msg("tree", id=item["id"], col="Data Status", val=result_msg)
+            
+            # Update Progress (Thread-Safe)
+            with lock:
+                completed_count += 1
+                pct = (completed_count / total) * 100
+                self._post_msg("progress", val=pct)
+                self._post_msg("status", f"📡 Fetching: {completed_count}/{total} completed")
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+            futures = [executor.submit(_fetch_worker, item) for item in to_process]
+            concurrent.futures.wait(futures)
         
-        self._post_msg("status", "✅ Fetching Complete")
+        self._post_msg("status", "✅ Parallel Fetch Complete")
         self._post_msg("progress", val=0)
 
     def _thread_train(self):
@@ -175,8 +203,35 @@ class StockTrainerApp(tk.Tk):
             self._post_msg("tree", id=item["id"], col="Train Status", val=msg if success else f"Failed: {msg}")
             self._post_msg("progress", val=((i+1)/len(to_train))*100)
             
+            
         self._post_msg("status", "✅ Training Complete")
         self._post_msg("progress", val=0)
+
+    def _thread_bulk_export(self):
+        """Background worker for bulk exporting all models."""
+        self._post_msg("status", "📦 Preparing Bulk Export...")
+        self._post_msg("progress", val=10)
+        
+        try:
+            # Reuses the engine's export_all logic which handles loops
+            # Note: For finer progress, we could loop here, but engine method is atomic for now.
+            # We'll just show "Busy" status.
+            
+            export_dir = self.engine.export_all_models()
+            
+            self._post_msg("status", f"✅ Export Complete: {os.path.basename(export_dir)}")
+            self._post_msg("progress", val=100)
+            
+            # Show location on main thread (via queue if we had a generic msg handler, 
+            # but for now we let user know via status bar. 
+            # Ideally we'd pop a messagebox but can't from thread safely without queue.)
+            # We'll rely on the user checking the folder manually or we can open it.
+            os.startfile(export_dir)
+            
+        except Exception as e:
+            self._post_msg("status", f"❌ Export Failed: {str(e)}")
+        finally:
+            self._post_msg("progress", val=0)
 
     def _post_msg(self, msg_type, msg=None, id=None, col=None, val=None):
         self.message_queue.put({"type": msg_type, "msg": msg, "id": id, "col": col, "val": val})

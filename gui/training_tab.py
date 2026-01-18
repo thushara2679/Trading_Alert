@@ -21,7 +21,7 @@ class TrainingTab(ttk.Frame):
     
     def __init__(self, parent, on_fetch_all: Callable, on_fetch_failed: Callable, 
                  on_train_all: Callable, on_save_credentials: Callable,
-                 on_update_stock_list: Callable,
+                 on_update_stock_list: Callable, on_bulk_export: Callable,
                  username_var: tk.StringVar, password_var: tk.StringVar):
         super().__init__(parent, style="TFrame")
         
@@ -30,6 +30,7 @@ class TrainingTab(ttk.Frame):
         self.on_train_all = on_train_all
         self.on_save_credentials = on_save_credentials
         self.on_update_stock_list = on_update_stock_list
+        self.on_bulk_export = on_bulk_export
         self.username_var = username_var
         self.password_var = password_var
         
@@ -64,7 +65,8 @@ class TrainingTab(ttk.Frame):
             ("📂 Upload CSV", self._on_upload_csv),
             ("📡 Fetch Data", self.on_fetch_all),
             ("🔄 Retry Failed", self.on_fetch_failed),
-            ("🚀 Train AI", self.on_train_all)
+            ("🚀 Train AI", self.on_train_all),
+            ("📱 Bulk Export", self.on_bulk_export)
         ]
         
         for text, command in buttons:

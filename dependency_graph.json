@@ -55,10 +55,11 @@
         {
             "id": "ml.stock_engine",
             "type": "procedure",
-            "description": "Core ML Engine logic",
+            "description": "Core ML Engine logic (Smart Fetch & Bulk Export)",
             "depends_on": [
                 "backend.data_fetcher",
-                "backend.data_loader"
+                "backend.data_loader",
+                "utils.validation"
             ],
             "used_by": [
                 "stock_trainer.py"
@@ -78,12 +79,13 @@
         {
             "id": "backend.data_fetcher",
             "type": "procedure",
-            "description": "TradingView data fetching service",
+            "description": "TradingView data fetching service (Thread-Safe)",
             "depends_on": [
                 "utils.validation"
             ],
             "used_by": [
-                "ml.stock_engine"
+                "ml.stock_engine",
+                "stock_trainer.py"
             ],
             "status": "active"
         },
