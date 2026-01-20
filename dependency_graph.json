@@ -1,0 +1,1561 @@
+{
+    "project": {
+        "name": "Trading_Alerts_Mobile_App",
+        "language": "python",
+        "framework": "flet",
+        "version": "1.0.1",
+        "last_updated": "2026-01-20",
+        "description": "Standalone mobile stock alert application using TradingView data and XGBoost models for signal generation"
+    },
+    "activity_graph": {
+        "nodes": [
+            {
+                "id": "main_entry",
+                "type": "function",
+                "name": "main",
+                "location": {
+                    "file": "main.py",
+                    "line_start": 15,
+                    "line_end": 95
+                },
+                "responsibility": {
+                    "what_it_does": "Application entry point that initializes the Flet UI framework, creates shared services, and sets up the navigation system",
+                    "why_it_exists": "Serves as the orchestrator that wires together all screens and services, manages app lifecycle and navigation"
+                },
+                "inputs": [
+                    {
+                        "name": "page",
+                        "type": "ft.Page",
+                        "source": "flet_framework",
+                        "how_obtained": {
+                            "mechanism": "framework_injection",
+                            "techniques": [
+                                "flet.app callback"
+                            ],
+                            "logic": "Flet framework automatically passes Page object when ft.app(target=main) is called"
+                        },
+                        "related_activities": []
+                    }
+                ],
+                "processing": {
+                    "steps": [
+                        "Configure page theme (dark mode, colors)",
+                        "Instantiate DataFetcher service",
+                        "Instantiate ModelInference service",
+                        "Create WatchlistScreen with services",
+                        "Create AlertsScreen",
+                        "Create SettingsScreen with services",
+                        "Build navigation bar with 3 destinations",
+                        "Set up navigation change handler",
+                        "Add UI layout to page"
+                    ],
+                    "algorithms_or_rules": [
+                        "Navigation index mapping: 0=Watchlist, 1=Alerts, 2=Settings"
+                    ],
+                    "validations": [],
+                    "error_handling": "No explicit error handling - relies on Flet framework"
+                },
+                "outputs": [
+                    {
+                        "name": "ui_layout",
+                        "type": "ft.Column",
+                        "destination": "page.add",
+                        "post_usage_reason": "Renders the complete UI with navigation and content area for user interaction"
+                    }
+                ],
+                "change_risk": {
+                    "level": "high",
+                    "reason": "Central orchestrator - changes affect entire app initialization and navigation"
+                },
+                "determinism": {
+                    "type": "deterministic",
+                    "notes": "Always produces same UI structure given same inputs"
+                }
+            },
+            {
+                "id": "data_fetcher_init",
+                "type": "function",
+                "name": "DataFetcher.__init__",
+                "location": {
+                    "file": "services/data_fetcher.py",
+                    "line_start": 40,
+                    "line_end": 54
+                },
+                "responsibility": {
+                    "what_it_does": "Initializes the data fetcher service with cache directory and TradingView connection",
+                    "why_it_exists": "Sets up the infrastructure for fetching and caching market data from TradingView"
+                },
+                "inputs": [
+                    {
+                        "name": "cache_dir",
+                        "type": "string",
+                        "source": "caller_default",
+                        "how_obtained": {
+                            "mechanism": "parameter_default",
+                            "techniques": [
+                                "default argument"
+                            ],
+                            "logic": "Defaults to 'data_cache' directory if not specified"
+                        },
+                        "related_activities": []
+                    }
+                ],
+                "processing": {
+                    "steps": [
+                        "Create cache directory if not exists",
+                        "Initialize fetch timestamps dictionary",
+                        "Initialize failed symbols list",
+                        "Create TvDatafeed instance if library available"
+                    ],
+                    "algorithms_or_rules": [],
+                    "validations": [
+                        "Check if tvdatafeed library is available"
+                    ],
+                    "error_handling": "Graceful degradation if tvdatafeed not available"
+                },
+                "outputs": [
+                    {
+                        "name": "self",
+                        "type": "DataFetcher",
+                        "destination": "caller",
+                        "post_usage_reason": "Provides data fetching capabilities to screens and other services"
+                    }
+                ]
+            },
+            {
+                "id": "data_fetcher_fetch_symbol",
+                "type": "function",
+                "name": "DataFetcher.fetch_symbol",
+                "location": {
+                    "file": "services/data_fetcher.py",
+                    "line_start": 69,
+                    "line_end": 201
+                },
+                "responsibility": {
+                    "what_it_does": "Fetches live OHLCV data from TradingView for a given symbol with retry logic and caching",
+                    "why_it_exists": "Core data acquisition function that provides market data to the entire application"
+                },
+                "inputs": [
+                    {
+                        "name": "symbol",
+                        "type": "string",
+                        "source": "caller_function",
+                        "how_obtained": {
+                            "mechanism": "function_argument",
+                            "techniques": [
+                                "parameter_passing"
+                            ],
+                            "logic": "Stock ticker symbol (e.g., 'CCS.N0000') passed from watchlist scan"
+                        },
+                        "related_activities": [
+                            "watchlist_scan_all"
+                        ]
+                    },
+                    {
+                        "name": "exchange",
+                        "type": "string",
+                        "source": "caller_function",
+                        "how_obtained": {
+                            "mechanism": "function_argument",
+                            "techniques": [
+                                "parameter_passing"
+                            ],
+                            "logic": "Exchange identifier (default: 'CSELK')"
+                        },
+                        "related_activities": []
+                    },
+                    {
+                        "name": "interval",
+                        "type": "string",
+                        "source": "caller_function",
+                        "how_obtained": {
+                            "mechanism": "function_argument",
+                            "techniques": [
+                                "parameter_passing"
+                            ],
+                            "logic": "Timeframe string ('1h', '4h', 'daily') mapped to TvDatafeed Interval enum"
+                        },
+                        "related_activities": []
+                    },
+                    {
+                        "name": "n_bars",
+                        "type": "integer",
+                        "source": "caller_function",
+                        "how_obtained": {
+                            "mechanism": "function_argument",
+                            "techniques": [
+                                "parameter_passing"
+                            ],
+                            "logic": "Number of historical bars to fetch (default: 50)"
+                        },
+                        "related_activities": []
+                    },
+                    {
+                        "name": "force",
+                        "type": "boolean",
+                        "source": "caller_function",
+                        "how_obtained": {
+                            "mechanism": "function_argument",
+                            "techniques": [
+                                "parameter_passing"
+                            ],
+                            "logic": "Force re-fetch even if cached data is valid (within 15 min)"
+                        },
+                        "related_activities": []
+                    }
+                ],
+                "processing": {
+                    "steps": [
+                        "Check data validity (15-minute cache)",
+                        "Return cached data if valid and not forced",
+                        "Map interval string to TvDatafeed Interval enum",
+                        "Retry loop (max 3 attempts) with exponential backoff",
+                        "Call tv.get_hist() to fetch data from TradingView",
+                        "Standardize column names to lowercase",
+                        "Ensure required OHLCV columns exist",
+                        "Calculate features via _calculate_features",
+                        "Extract latest bar data",
+                        "Build result dictionary",
+                        "Save to cache",
+                        "Update fetch timestamp"
+                    ],
+                    "algorithms_or_rules": [
+                        "Exponential backoff: 1s, 2s between retries",
+                        "Data validity window: 15 minutes",
+                        "Interval mapping: '1h' -> Interval.in_1_hour, etc."
+                    ],
+                    "validations": [
+                        "Check if dataframe is not None and not empty",
+                        "Verify required OHLCV columns exist"
+                    ],
+                    "error_handling": "Track failed symbols, return cached data on failure, print error messages"
+                },
+                "outputs": [
+                    {
+                        "name": "result_dict",
+                        "type": "Dict[str, Any]",
+                        "destination": "caller",
+                        "post_usage_reason": "Provides OHLCV data and calculated features for model inference and UI display"
+                    }
+                ],
+                "change_risk": {
+                    "level": "high",
+                    "reason": "Core data pipeline - all downstream analysis depends on this function"
+                },
+                "determinism": {
+                    "type": "stochastic",
+                    "notes": "Depends on live TradingView data and network conditions"
+                },
+                "performance": {
+                    "time_complexity": "O(n) where n = n_bars",
+                    "memory_profile": "moderate - stores full dataframe in memory",
+                    "bottlenecks": [
+                        "network latency",
+                        "TradingView API rate limits"
+                    ]
+                }
+            },
+            {
+                "id": "data_fetcher_calculate_features",
+                "type": "function",
+                "name": "DataFetcher._calculate_features",
+                "location": {
+                    "file": "services/data_fetcher.py",
+                    "line_start": 203,
+                    "line_end": 285
+                },
+                "responsibility": {
+                    "what_it_does": "Calculates technical features from OHLCV data including multi-timeframe volume Z-scores and elasticity",
+                    "why_it_exists": "Transforms raw market data into features required by XGBoost models for prediction"
+                },
+                "inputs": [
+                    {
+                        "name": "df",
+                        "type": "pandas.DataFrame",
+                        "source": "fetch_symbol",
+                        "how_obtained": {
+                            "mechanism": "internal_call",
+                            "techniques": [
+                                "dataframe_processing"
+                            ],
+                            "logic": "Receives OHLCV dataframe from TradingView fetch"
+                        },
+                        "related_activities": [
+                            "data_fetcher_fetch_symbol"
+                        ]
+                    }
+                ],
+                "processing": {
+                    "steps": [
+                        "Ensure DataFrame has DatetimeIndex",
+                        "Calculate elasticity: (high - low) / close",
+                        "Calculate 1H volume Z-score with 60-period rolling window",
+                        "Resample to 4H timeframe and calculate 4H volume Z-score",
+                        "Resample to 1D timeframe and calculate 1D volume Z-score",
+                        "Extract time features: day_of_week, hour_of_day",
+                        "Add legacy/fallback feature names",
+                        "Add raw OHLCV values"
+                    ],
+                    "algorithms_or_rules": [
+                        "Z-score formula: (value - rolling_mean) / rolling_std",
+                        "Rolling window: 60 periods",
+                        "Zero-division protection: replace std=0 with std=1",
+                        "Multi-timeframe resampling: 4H and 1D aggregations"
+                    ],
+                    "validations": [
+                        "Check if DatetimeIndex exists, convert if needed",
+                        "Handle empty dataframes with safe defaults"
+                    ],
+                    "error_handling": "Return safe default feature dict with zeros on any exception"
+                },
+                "outputs": [
+                    {
+                        "name": "features",
+                        "type": "Dict[str, float]",
+                        "destination": "fetch_symbol_result",
+                        "post_usage_reason": "Feature dictionary is passed to ModelInference.predict() for XGBoost inference"
+                    }
+                ],
+                "change_risk": {
+                    "level": "high",
+                    "reason": "Feature engineering - changes affect model predictions and must match training features"
+                },
+                "determinism": {
+                    "type": "deterministic",
+                    "notes": "Given same OHLCV data, produces same features"
+                }
+            },
+            {
+                "id": "model_inference_init",
+                "type": "function",
+                "name": "ModelInference.__init__",
+                "location": {
+                    "file": "services/model_inference.py",
+                    "line_start": 134,
+                    "line_end": 138
+                },
+                "responsibility": {
+                    "what_it_does": "Initializes the model inference service with models directory path",
+                    "why_it_exists": "Sets up infrastructure for loading and managing XGBoost models"
+                },
+                "inputs": [
+                    {
+                        "name": "models_dir",
+                        "type": "string",
+                        "source": "caller_default",
+                        "how_obtained": {
+                            "mechanism": "parameter_default",
+                            "techniques": [
+                                "default argument"
+                            ],
+                            "logic": "Defaults to 'assets/models' directory"
+                        },
+                        "related_activities": []
+                    }
+                ],
+                "processing": {
+                    "steps": [
+                        "Set models directory path",
+                        "Initialize empty models cache dictionary",
+                        "Initialize empty feature names cache",
+                        "Create models directory if not exists"
+                    ],
+                    "algorithms_or_rules": [],
+                    "validations": [],
+                    "error_handling": "None - relies on OS error handling"
+                },
+                "outputs": [
+                    {
+                        "name": "self",
+                        "type": "ModelInference",
+                        "destination": "caller",
+                        "post_usage_reason": "Provides model loading and inference capabilities to screens"
+                    }
+                ]
+            },
+            {
+                "id": "model_inference_load_models",
+                "type": "function",
+                "name": "ModelInference.load_models",
+                "location": {
+                    "file": "services/model_inference.py",
+                    "line_start": 151,
+                    "line_end": 189
+                },
+                "responsibility": {
+                    "what_it_does": "Loads all horizon models (4H, 2D, 5D) for a specific symbol from JSON files",
+                    "why_it_exists": "Prepares XGBoost models for inference by parsing JSON and building tree structures"
+                },
+                "inputs": [
+                    {
+                        "name": "symbol",
+                        "type": "string",
+                        "source": "caller_function",
+                        "how_obtained": {
+                            "mechanism": "function_argument",
+                            "techniques": [
+                                "parameter_passing"
+                            ],
+                            "logic": "Stock symbol to load models for"
+                        },
+                        "related_activities": [
+                            "watchlist_scan_all"
+                        ]
+                    }
+                ],
+                "processing": {
+                    "steps": [
+                        "Get model package path (check both standard and mobile variants)",
+                        "For each horizon (4H, 2D, 5D):",
+                        "  - Build model file path",
+                        "  - Load JSON file",
+                        "  - Parse with XGBoostModel.from_json",
+                        "  - Cache in _models dictionary",
+                        "Load feature names from features.json if available"
+                    ],
+                    "algorithms_or_rules": [
+                        "Model file naming: model_{horizon}.json",
+                        "Package naming: {symbol}_pkg or {symbol}_mobile_pkg"
+                    ],
+                    "validations": [
+                        "Check if model file exists before loading"
+                    ],
+                    "error_handling": "Catch exceptions per model, continue loading others, return success status dict"
+                },
+                "outputs": [
+                    {
+                        "name": "results",
+                        "type": "Dict[str, bool]",
+                        "destination": "caller",
+                        "post_usage_reason": "Indicates which models loaded successfully for diagnostics and UI display"
+                    }
+                ],
+                "change_risk": {
+                    "level": "medium",
+                    "reason": "Model loading logic - changes affect inference availability"
+                }
+            },
+            {
+                "id": "model_inference_predict",
+                "type": "function",
+                "name": "ModelInference.predict",
+                "location": {
+                    "file": "services/model_inference.py",
+                    "line_start": 191,
+                    "line_end": 223
+                },
+                "responsibility": {
+                    "what_it_does": "Runs XGBoost inference for all horizons and returns probability predictions",
+                    "why_it_exists": "Core prediction engine that generates trading signal probabilities"
+                },
+                "inputs": [
+                    {
+                        "name": "symbol",
+                        "type": "string",
+                        "source": "caller_function",
+                        "how_obtained": {
+                            "mechanism": "function_argument",
+                            "techniques": [
+                                "parameter_passing"
+                            ],
+                            "logic": "Stock symbol to predict for"
+                        },
+                        "related_activities": [
+                            "watchlist_scan_all"
+                        ]
+                    },
+                    {
+                        "name": "features",
+                        "type": "Dict[str, float]",
+                        "source": "data_fetcher",
+                        "how_obtained": {
+                            "mechanism": "data_flow",
+                            "techniques": [
+                                "feature_dictionary"
+                            ],
+                            "logic": "Feature dictionary from DataFetcher._calculate_features"
+                        },
+                        "related_activities": [
+                            "data_fetcher_calculate_features"
+                        ]
+                    }
+                ],
+                "processing": {
+                    "steps": [
+                        "Determine feature order from metadata or use fallback",
+                        "Create feature vector by mapping dict to list",
+                        "For each horizon (4H, 2D, 5D):",
+                        "  - Get cached model",
+                        "  - Call model.predict_proba(features)",
+                        "  - Convert to percentage (0-100)",
+                        "  - Store in results dict"
+                    ],
+                    "algorithms_or_rules": [
+                        "XGBoost tree traversal for each model",
+                        "Sigmoid transformation: 1 / (1 + exp(-raw_score))",
+                        "Percentage conversion: prob * 100"
+                    ],
+                    "validations": [
+                        "Check if model exists before prediction"
+                    ],
+                    "error_handling": "Return 0.0 probability if model not loaded"
+                },
+                "outputs": [
+                    {
+                        "name": "results",
+                        "type": "Dict[str, float]",
+                        "destination": "signal_filter",
+                        "post_usage_reason": "Probability predictions are evaluated by SignalFilter to generate trading signals"
+                    }
+                ],
+                "change_risk": {
+                    "level": "high",
+                    "reason": "Core prediction logic - changes affect all trading signals"
+                },
+                "determinism": {
+                    "type": "deterministic",
+                    "notes": "Given same features and models, produces same predictions"
+                },
+                "performance": {
+                    "time_complexity": "O(t * d) where t=trees, d=depth",
+                    "memory_profile": "low - only stores feature vector",
+                    "bottlenecks": [
+                        "number of trees in model"
+                    ]
+                }
+            },
+            {
+                "id": "xgboost_tree_predict",
+                "type": "function",
+                "name": "XGBoostTree.predict",
+                "location": {
+                    "file": "services/model_inference.py",
+                    "line_start": 67,
+                    "line_end": 86
+                },
+                "responsibility": {
+                    "what_it_does": "Traverses a single XGBoost decision tree to get leaf weight prediction",
+                    "why_it_exists": "Implements the core tree traversal algorithm for XGBoost inference"
+                },
+                "inputs": [
+                    {
+                        "name": "features",
+                        "type": "List[float]",
+                        "source": "model_predict",
+                        "how_obtained": {
+                            "mechanism": "internal_call",
+                            "techniques": [
+                                "list_indexing"
+                            ],
+                            "logic": "Feature vector from ModelInference.predict"
+                        },
+                        "related_activities": [
+                            "model_inference_predict"
+                        ]
+                    }
+                ],
+                "processing": {
+                    "steps": [
+                        "Start at root node (node=0)",
+                        "While not at leaf:",
+                        "  - Get feature index and threshold",
+                        "  - Compare feature value to threshold",
+                        "  - Navigate to left or right child",
+                        "  - Check bounds",
+                        "Return leaf weight"
+                    ],
+                    "algorithms_or_rules": [
+                        "Binary tree traversal",
+                        "Left child if feature < threshold, else right child",
+                        "Bounds checking to prevent index errors"
+                    ],
+                    "validations": [
+                        "Check if feature index is within bounds",
+                        "Check if node index is valid"
+                    ],
+                    "error_handling": "Return current node weight if bounds exceeded"
+                },
+                "outputs": [
+                    {
+                        "name": "leaf_weight",
+                        "type": "float",
+                        "destination": "xgboost_model_predict_raw",
+                        "post_usage_reason": "Leaf weight is summed across all trees for final prediction"
+                    }
+                ],
+                "change_risk": {
+                    "level": "low",
+                    "reason": "Standard XGBoost algorithm - should not change"
+                },
+                "determinism": {
+                    "type": "deterministic",
+                    "notes": "Pure function - same inputs always produce same output"
+                }
+            },
+            {
+                "id": "signal_filter_evaluate",
+                "type": "function",
+                "name": "SignalFilter.evaluate",
+                "location": {
+                    "file": "services/signal_filter.py",
+                    "line_start": 45,
+                    "line_end": 109
+                },
+                "responsibility": {
+                    "what_it_does": "Evaluates probability predictions and classifies into trading signal types (COMBO, SCALP, WATCH, AVOID, NEUTRAL)",
+                    "why_it_exists": "Translates raw model probabilities into actionable trading signals with priority levels"
+                },
+                "inputs": [
+                    {
+                        "name": "probs",
+                        "type": "Dict[str, float]",
+                        "source": "model_inference",
+                        "how_obtained": {
+                            "mechanism": "data_flow",
+                            "techniques": [
+                                "dictionary_lookup"
+                            ],
+                            "logic": "Probability dictionary from ModelInference.predict with keys '4H', '2D', '5D'"
+                        },
+                        "related_activities": [
+                            "model_inference_predict"
+                        ]
+                    }
+                ],
+                "processing": {
+                    "steps": [
+                        "Load thresholds from ConfigManager",
+                        "Extract 4H, 2D, 5D probabilities",
+                        "Calculate average probability",
+                        "Apply signal logic in priority order:",
+                        "  1. COMBO: 4H >= 70% AND 5D >= 60%",
+                        "  2. SCALP: 4H >= 70% only",
+                        "  3. WATCH: 5D >= 60% only",
+                        "  4. AVOID: All < 40%",
+                        "  5. NEUTRAL: Default fallback",
+                        "Return SignalResult with type, actionability, confidence, color"
+                    ],
+                    "algorithms_or_rules": [
+                        "Multi-timeframe combo logic: requires both short-term (4H) and long-term (5D) alignment",
+                        "Priority hierarchy: COMBO > SCALP > WATCH > NEUTRAL > AVOID",
+                        "Configurable thresholds via ConfigManager"
+                    ],
+                    "validations": [
+                        "Handle missing probability values with default 0.0"
+                    ],
+                    "error_handling": "None - uses safe defaults"
+                },
+                "outputs": [
+                    {
+                        "name": "signal_result",
+                        "type": "SignalResult",
+                        "destination": "watchlist_screen",
+                        "post_usage_reason": "Signal classification is displayed in watchlist UI and used for sorting/filtering stocks"
+                    }
+                ],
+                "change_risk": {
+                    "level": "medium",
+                    "reason": "Signal logic - changes affect trading recommendations"
+                },
+                "determinism": {
+                    "type": "deterministic",
+                    "notes": "Given same probabilities and thresholds, produces same signal"
+                }
+            },
+            {
+                "id": "config_manager_init",
+                "type": "function",
+                "name": "ConfigManager.__new__",
+                "location": {
+                    "file": "services/config_manager.py",
+                    "line_start": 35,
+                    "line_end": 39
+                },
+                "responsibility": {
+                    "what_it_does": "Implements singleton pattern for configuration management",
+                    "why_it_exists": "Ensures only one config instance exists across the app for consistency"
+                },
+                "inputs": [],
+                "processing": {
+                    "steps": [
+                        "Check if instance already exists",
+                        "If not, create new instance",
+                        "Load config from disk",
+                        "Return instance"
+                    ],
+                    "algorithms_or_rules": [
+                        "Singleton pattern using class variable _instance"
+                    ],
+                    "validations": [],
+                    "error_handling": "None"
+                },
+                "outputs": [
+                    {
+                        "name": "instance",
+                        "type": "ConfigManager",
+                        "destination": "caller",
+                        "post_usage_reason": "Provides centralized configuration access to all services and screens"
+                    }
+                ]
+            },
+            {
+                "id": "config_manager_get_thresholds",
+                "type": "function",
+                "name": "ConfigManager.get_thresholds",
+                "location": {
+                    "file": "services/config_manager.py",
+                    "line_start": 77,
+                    "line_end": 79
+                },
+                "responsibility": {
+                    "what_it_does": "Returns all signal threshold values for trading signal classification",
+                    "why_it_exists": "Provides configurable thresholds to SignalFilter for signal evaluation"
+                },
+                "inputs": [],
+                "processing": {
+                    "steps": [
+                        "Retrieve 'thresholds' section from config",
+                        "Return with fallback to defaults if missing"
+                    ],
+                    "algorithms_or_rules": [],
+                    "validations": [],
+                    "error_handling": "Fallback to DEFAULTS if section missing"
+                },
+                "outputs": [
+                    {
+                        "name": "thresholds",
+                        "type": "Dict[str, float]",
+                        "destination": "signal_filter",
+                        "post_usage_reason": "Threshold values are used by SignalFilter.evaluate to classify signals"
+                    }
+                ]
+            },
+            {
+                "id": "watchlist_screen_init",
+                "type": "function",
+                "name": "WatchlistScreen.__init__",
+                "location": {
+                    "file": "screens/watchlist.py",
+                    "line_start": 71,
+                    "line_end": 85
+                },
+                "responsibility": {
+                    "what_it_does": "Initializes the watchlist screen with UI components and service dependencies",
+                    "why_it_exists": "Sets up the main screen where users view and scan their stock watchlist"
+                },
+                "inputs": [
+                    {
+                        "name": "page",
+                        "type": "ft.Page",
+                        "source": "main_entry",
+                        "how_obtained": {
+                            "mechanism": "dependency_injection",
+                            "techniques": [
+                                "constructor_injection"
+                            ],
+                            "logic": "Page object passed from main() function"
+                        },
+                        "related_activities": [
+                            "main_entry"
+                        ]
+                    },
+                    {
+                        "name": "data_fetcher",
+                        "type": "DataFetcher",
+                        "source": "main_entry",
+                        "how_obtained": {
+                            "mechanism": "dependency_injection",
+                            "techniques": [
+                                "constructor_injection"
+                            ],
+                            "logic": "Shared DataFetcher instance from main()"
+                        },
+                        "related_activities": [
+                            "main_entry"
+                        ]
+                    },
+                    {
+                        "name": "model_inference",
+                        "type": "ModelInference",
+                        "source": "main_entry",
+                        "how_obtained": {
+                            "mechanism": "dependency_injection",
+                            "techniques": [
+                                "constructor_injection"
+                            ],
+                            "logic": "Shared ModelInference instance from main()"
+                        },
+                        "related_activities": [
+                            "main_entry"
+                        ]
+                    }
+                ],
+                "processing": {
+                    "steps": [
+                        "Initialize stocks list",
+                        "Create UI components (status text, progress bar, list view)",
+                        "Store service references",
+                        "Load persisted stocks from stocks.json"
+                    ],
+                    "algorithms_or_rules": [],
+                    "validations": [],
+                    "error_handling": "None in init"
+                },
+                "outputs": [
+                    {
+                        "name": "self",
+                        "type": "WatchlistScreen",
+                        "destination": "main_entry",
+                        "post_usage_reason": "Screen instance is used for navigation and UI rendering"
+                    }
+                ]
+            },
+            {
+                "id": "watchlist_scan_all",
+                "type": "function",
+                "name": "WatchlistScreen._scan_all",
+                "location": {
+                    "file": "screens/watchlist.py",
+                    "line_start": 246,
+                    "line_end": 313
+                },
+                "responsibility": {
+                    "what_it_does": "Scans all stocks in watchlist: fetches data, runs inference, evaluates signals, and updates UI",
+                    "why_it_exists": "Core workflow that orchestrates the entire data pipeline from fetch to signal generation"
+                },
+                "inputs": [
+                    {
+                        "name": "e",
+                        "type": "ft.ControlEvent",
+                        "source": "ui_button_click",
+                        "how_obtained": {
+                            "mechanism": "event_callback",
+                            "techniques": [
+                                "async_event_handler"
+                            ],
+                            "logic": "Triggered when user clicks 'Scan All' button"
+                        },
+                        "related_activities": []
+                    }
+                ],
+                "processing": {
+                    "steps": [
+                        "Check if already scanning or no stocks",
+                        "Set scanning flag and reset progress bar",
+                        "Show snackbar notification",
+                        "For each stock:",
+                        "  - Update status text",
+                        "  - Update progress bar value",
+                        "  - Fetch data via data_fetcher.get_data",
+                        "  - If data valid:",
+                        "    - Load models via model_inference.load_models",
+                        "    - Run prediction via model_inference.predict",
+                        "    - Evaluate signal via SignalFilter.evaluate",
+                        "    - Update stock properties",
+                        "  - Else mark as 'No Data'",
+                        "Sort stocks by signal priority",
+                        "Reset progress bar",
+                        "Refresh UI list",
+                        "Save stocks to JSON",
+                        "Show completion snackbar"
+                    ],
+                    "algorithms_or_rules": [
+                        "Progress calculation: (i+1)/total",
+                        "Signal priority sorting: COMBO > SCALP > WATCH > NEUTRAL > AVOID",
+                        "Data validity check: 15-minute cache window"
+                    ],
+                    "validations": [
+                        "Check if scanning already in progress",
+                        "Check if stocks list is empty",
+                        "Validate data and features exist"
+                    ],
+                    "error_handling": "Mark stocks as 'No Data' on failure, continue with next stock"
+                },
+                "outputs": [
+                    {
+                        "name": "updated_stocks",
+                        "type": "List[StockSymbol]",
+                        "destination": "ui_refresh",
+                        "post_usage_reason": "Updated stock data is displayed in the watchlist UI and saved to stocks.json"
+                    }
+                ],
+                "change_risk": {
+                    "level": "high",
+                    "reason": "Core workflow - orchestrates entire data pipeline"
+                },
+                "determinism": {
+                    "type": "stochastic",
+                    "notes": "Depends on live market data and network conditions"
+                },
+                "performance": {
+                    "time_complexity": "O(n) where n = number of stocks",
+                    "memory_profile": "moderate - loads models for each stock",
+                    "bottlenecks": [
+                        "network latency",
+                        "model loading"
+                    ]
+                }
+            },
+            {
+                "id": "watchlist_import_csv",
+                "type": "function",
+                "name": "WatchlistScreen._on_csv_picked",
+                "location": {
+                    "file": "screens/watchlist.py",
+                    "line_start": 322,
+                    "line_end": 376
+                },
+                "responsibility": {
+                    "what_it_does": "Imports stock symbols from CSV file into watchlist",
+                    "why_it_exists": "Allows users to bulk-load watchlist from external file"
+                },
+                "inputs": [
+                    {
+                        "name": "e",
+                        "type": "ft.FilePickerResultEvent",
+                        "source": "file_picker",
+                        "how_obtained": {
+                            "mechanism": "file_picker_callback",
+                            "techniques": [
+                                "async_callback"
+                            ],
+                            "logic": "Triggered when user selects CSV file via file picker"
+                        },
+                        "related_activities": []
+                    }
+                ],
+                "processing": {
+                    "steps": [
+                        "Check if file was selected",
+                        "Read CSV file content",
+                        "Parse lines",
+                        "Extract exchange from first line",
+                        "Clear existing stocks",
+                        "For each subsequent line:",
+                        "  - Parse symbol from CSV",
+                        "  - Skip header row if present",
+                        "  - Create StockSymbol object",
+                        "  - Add to stocks list",
+                        "Refresh UI",
+                        "Save to stocks.json",
+                        "Show success snackbar"
+                    ],
+                    "algorithms_or_rules": [
+                        "CSV format: Row 1 = Exchange, Row 2+ = Symbols",
+                        "Header detection: skip if first column is 'symbol'"
+                    ],
+                    "validations": [
+                        "Check if file exists",
+                        "Check if lines are not empty"
+                    ],
+                    "error_handling": "Show error snackbar on exception"
+                },
+                "outputs": [
+                    {
+                        "name": "stocks_list",
+                        "type": "List[StockSymbol]",
+                        "destination": "stocks.json",
+                        "post_usage_reason": "Imported stocks are persisted and displayed in watchlist"
+                    }
+                ]
+            },
+            {
+                "id": "watchlist_save_stocks",
+                "type": "function",
+                "name": "WatchlistScreen._save_stocks",
+                "location": {
+                    "file": "screens/watchlist.py",
+                    "line_start": 378,
+                    "line_end": 382
+                },
+                "responsibility": {
+                    "what_it_does": "Persists current watchlist to stocks.json file",
+                    "why_it_exists": "Ensures watchlist data survives app restarts"
+                },
+                "inputs": [
+                    {
+                        "name": "self.stocks",
+                        "type": "List[StockSymbol]",
+                        "source": "instance_variable",
+                        "how_obtained": {
+                            "mechanism": "instance_state",
+                            "techniques": [
+                                "object_attribute"
+                            ],
+                            "logic": "Current stocks list from WatchlistScreen instance"
+                        },
+                        "related_activities": []
+                    }
+                ],
+                "processing": {
+                    "steps": [
+                        "Convert stocks to dict list via to_dict()",
+                        "Write JSON to stocks.json file"
+                    ],
+                    "algorithms_or_rules": [],
+                    "validations": [],
+                    "error_handling": "None - relies on OS file I/O error handling"
+                },
+                "outputs": [
+                    {
+                        "name": "stocks.json",
+                        "type": "file",
+                        "destination": "filesystem",
+                        "post_usage_reason": "Persisted data is loaded on next app launch"
+                    }
+                ]
+            },
+            {
+                "id": "watchlist_load_stocks",
+                "type": "function",
+                "name": "WatchlistScreen._load_stocks",
+                "location": {
+                    "file": "screens/watchlist.py",
+                    "line_start": 384,
+                    "line_end": 392
+                },
+                "responsibility": {
+                    "what_it_does": "Loads persisted watchlist from stocks.json file",
+                    "why_it_exists": "Restores user's watchlist on app startup"
+                },
+                "inputs": [
+                    {
+                        "name": "stocks.json",
+                        "type": "file",
+                        "source": "filesystem",
+                        "how_obtained": {
+                            "mechanism": "file_read",
+                            "techniques": [
+                                "json_deserialization"
+                            ],
+                            "logic": "Read JSON file if exists"
+                        },
+                        "related_activities": [
+                            "watchlist_save_stocks"
+                        ]
+                    }
+                ],
+                "processing": {
+                    "steps": [
+                        "Check if stocks.json exists",
+                        "Read JSON file",
+                        "Parse JSON data",
+                        "Convert dicts to StockSymbol objects",
+                        "Assign to self.stocks"
+                    ],
+                    "algorithms_or_rules": [],
+                    "validations": [
+                        "Check file existence"
+                    ],
+                    "error_handling": "Silent failure - stocks remain empty if load fails"
+                },
+                "outputs": [
+                    {
+                        "name": "self.stocks",
+                        "type": "List[StockSymbol]",
+                        "destination": "instance_variable",
+                        "post_usage_reason": "Loaded stocks are displayed in watchlist UI"
+                    }
+                ]
+            },
+            {
+                "id": "alerts_screen_init",
+                "type": "function",
+                "name": "AlertsScreen.__init__",
+                "location": {
+                    "file": "screens/alerts.py",
+                    "line_start": 73,
+                    "line_end": 77
+                },
+                "responsibility": {
+                    "what_it_does": "Initializes the alerts screen with UI components",
+                    "why_it_exists": "Sets up the screen for displaying historical trading signals"
+                },
+                "inputs": [
+                    {
+                        "name": "page",
+                        "type": "ft.Page",
+                        "source": "main_entry",
+                        "how_obtained": {
+                            "mechanism": "dependency_injection",
+                            "techniques": [
+                                "constructor_injection"
+                            ],
+                            "logic": "Page object passed from main()"
+                        },
+                        "related_activities": [
+                            "main_entry"
+                        ]
+                    }
+                ],
+                "processing": {
+                    "steps": [
+                        "Initialize alerts list",
+                        "Create ListView component",
+                        "Load persisted alerts from alerts.json"
+                    ],
+                    "algorithms_or_rules": [],
+                    "validations": [],
+                    "error_handling": "None in init"
+                },
+                "outputs": [
+                    {
+                        "name": "self",
+                        "type": "AlertsScreen",
+                        "destination": "main_entry",
+                        "post_usage_reason": "Screen instance is used for navigation and UI rendering"
+                    }
+                ]
+            },
+            {
+                "id": "alerts_build_card",
+                "type": "function",
+                "name": "AlertsScreen._build_alert_card",
+                "location": {
+                    "file": "screens/alerts.py",
+                    "line_start": 133,
+                    "line_end": 202
+                },
+                "responsibility": {
+                    "what_it_does": "Builds a visual card component for displaying alert details",
+                    "why_it_exists": "Provides rich UI representation of trading signals with probabilities and metadata"
+                },
+                "inputs": [
+                    {
+                        "name": "alert",
+                        "type": "AlertItem",
+                        "source": "instance_variable",
+                        "how_obtained": {
+                            "mechanism": "iteration",
+                            "techniques": [
+                                "list_iteration"
+                            ],
+                            "logic": "Alert object from self.alerts list"
+                        },
+                        "related_activities": []
+                    }
+                ],
+                "processing": {
+                    "steps": [
+                        "Get signal color from SignalFilter.COLORS",
+                        "Map signal type to emoji",
+                        "Calculate time ago from timestamp",
+                        "Build card layout with:",
+                        "  - Header: emoji + symbol + signal badge",
+                        "  - Probabilities row: 4H, 2D, 5D percentages",
+                        "  - Footer: price + time",
+                        "Apply styling and borders"
+                    ],
+                    "algorithms_or_rules": [
+                        "Time formatting: <1min='Just now', <1hr='X min ago', <1day='X hrs ago', else date",
+                        "Border highlight for COMBO signals"
+                    ],
+                    "validations": [],
+                    "error_handling": "Fallback to timestamp string if parsing fails"
+                },
+                "outputs": [
+                    {
+                        "name": "card_container",
+                        "type": "ft.Container",
+                        "destination": "alert_list_view",
+                        "post_usage_reason": "Card is displayed in alerts screen UI"
+                    }
+                ]
+            },
+            {
+                "id": "settings_screen_init",
+                "type": "function",
+                "name": "SettingsScreen.__init__",
+                "location": {
+                    "file": "screens/settings.py",
+                    "line_start": 27,
+                    "line_end": 44
+                },
+                "responsibility": {
+                    "what_it_does": "Initializes the settings screen with service dependencies and UI components",
+                    "why_it_exists": "Sets up the screen for app configuration, model management, and diagnostics"
+                },
+                "inputs": [
+                    {
+                        "name": "page",
+                        "type": "ft.Page",
+                        "source": "main_entry",
+                        "how_obtained": {
+                            "mechanism": "dependency_injection",
+                            "techniques": [
+                                "constructor_injection"
+                            ],
+                            "logic": "Page object passed from main()"
+                        },
+                        "related_activities": [
+                            "main_entry"
+                        ]
+                    },
+                    {
+                        "name": "data_fetcher",
+                        "type": "DataFetcher",
+                        "source": "main_entry",
+                        "how_obtained": {
+                            "mechanism": "dependency_injection",
+                            "techniques": [
+                                "constructor_injection"
+                            ],
+                            "logic": "Shared DataFetcher instance from main()"
+                        },
+                        "related_activities": [
+                            "main_entry"
+                        ]
+                    },
+                    {
+                        "name": "model_inference",
+                        "type": "ModelInference",
+                        "source": "main_entry",
+                        "how_obtained": {
+                            "mechanism": "dependency_injection",
+                            "techniques": [
+                                "constructor_injection"
+                            ],
+                            "logic": "Shared ModelInference instance from main()"
+                        },
+                        "related_activities": [
+                            "main_entry"
+                        ]
+                    }
+                ],
+                "processing": {
+                    "steps": [
+                        "Store service references",
+                        "Create ConfigManager instance",
+                        "Initialize model list UI component",
+                        "Create diagnostics UI elements"
+                    ],
+                    "algorithms_or_rules": [],
+                    "validations": [],
+                    "error_handling": "None in init"
+                },
+                "outputs": [
+                    {
+                        "name": "self",
+                        "type": "SettingsScreen",
+                        "destination": "main_entry",
+                        "post_usage_reason": "Screen instance is used for navigation and UI rendering"
+                    }
+                ]
+            },
+            {
+                "id": "settings_import_models",
+                "type": "function",
+                "name": "SettingsScreen._import_models",
+                "location": {
+                    "file": "screens/settings.py",
+                    "line_start": 303,
+                    "line_end": 338
+                },
+                "responsibility": {
+                    "what_it_does": "Imports XGBoost model packages from selected directory into assets/models",
+                    "why_it_exists": "Allows users to add new trained models to the app"
+                },
+                "inputs": [
+                    {
+                        "name": "e",
+                        "type": "ft.ControlEvent",
+                        "source": "ui_button_click",
+                        "how_obtained": {
+                            "mechanism": "event_callback",
+                            "techniques": [
+                                "async_event_handler"
+                            ],
+                            "logic": "Triggered when user clicks 'Import Models' button"
+                        },
+                        "related_activities": []
+                    }
+                ],
+                "processing": {
+                    "steps": [
+                        "Open directory picker",
+                        "On directory selected:",
+                        "  - List all items in source directory",
+                        "  - For each item ending with '_pkg' or '_mobile_pkg':",
+                        "    - Standardize naming (remove _mobile suffix)",
+                        "    - Delete existing package if present",
+                        "    - Copy package to models directory",
+                        "    - Increment counter",
+                        "  - Refresh model list UI",
+                        "  - Show success snackbar"
+                    ],
+                    "algorithms_or_rules": [
+                        "Name standardization: _mobile_pkg -> _pkg",
+                        "Dot replacement: symbol.N0000 -> symbol_N0000"
+                    ],
+                    "validations": [
+                        "Check if directory path exists"
+                    ],
+                    "error_handling": "Print error and continue with next package"
+                },
+                "outputs": [
+                    {
+                        "name": "model_packages",
+                        "type": "directories",
+                        "destination": "assets/models",
+                        "post_usage_reason": "Imported models become available for inference"
+                    }
+                ]
+            },
+            {
+                "id": "settings_run_model_test",
+                "type": "function",
+                "name": "SettingsScreen._run_model_test",
+                "location": {
+                    "file": "screens/settings.py",
+                    "line_start": 221,
+                    "line_end": 236
+                },
+                "responsibility": {
+                    "what_it_does": "Runs diagnostic test inference with dummy features for a symbol",
+                    "why_it_exists": "Allows users to verify model loading and inference functionality"
+                },
+                "inputs": [
+                    {
+                        "name": "symbol",
+                        "type": "string",
+                        "source": "ui_text_field",
+                        "how_obtained": {
+                            "mechanism": "ui_input",
+                            "techniques": [
+                                "text_field_value"
+                            ],
+                            "logic": "User enters symbol in test input field"
+                        },
+                        "related_activities": []
+                    }
+                ],
+                "processing": {
+                    "steps": [
+                        "Get symbol from input field",
+                        "Update output text to 'Running inference...'",
+                        "Call model_inference.test_inference(symbol)",
+                        "Format result as JSON",
+                        "Display in output text area",
+                        "Refresh model list to show loaded status"
+                    ],
+                    "algorithms_or_rules": [],
+                    "validations": [
+                        "Check if symbol is not empty"
+                    ],
+                    "error_handling": "None - relies on test_inference error handling"
+                },
+                "outputs": [
+                    {
+                        "name": "test_result",
+                        "type": "Dict[str, Any]",
+                        "destination": "ui_text_display",
+                        "post_usage_reason": "Diagnostic results are displayed to user for verification"
+                    }
+                ]
+            }
+        ],
+        "edges": [
+            {
+                "from": "main_entry",
+                "to": "data_fetcher_init",
+                "relationship": "instantiation",
+                "data_passed": [
+                    "cache_dir"
+                ],
+                "impact_if_changed": "App initialization will fail if DataFetcher constructor changes"
+            },
+            {
+                "from": "main_entry",
+                "to": "model_inference_init",
+                "relationship": "instantiation",
+                "data_passed": [
+                    "models_dir"
+                ],
+                "impact_if_changed": "App initialization will fail if ModelInference constructor changes"
+            },
+            {
+                "from": "main_entry",
+                "to": "watchlist_screen_init",
+                "relationship": "instantiation",
+                "data_passed": [
+                    "page",
+                    "data_fetcher",
+                    "model_inference"
+                ],
+                "impact_if_changed": "Navigation system breaks if WatchlistScreen constructor changes"
+            },
+            {
+                "from": "main_entry",
+                "to": "alerts_screen_init",
+                "relationship": "instantiation",
+                "data_passed": [
+                    "page"
+                ],
+                "impact_if_changed": "Navigation system breaks if AlertsScreen constructor changes"
+            },
+            {
+                "from": "main_entry",
+                "to": "settings_screen_init",
+                "relationship": "instantiation",
+                "data_passed": [
+                    "page",
+                    "data_fetcher",
+                    "model_inference"
+                ],
+                "impact_if_changed": "Navigation system breaks if SettingsScreen constructor changes"
+            },
+            {
+                "from": "watchlist_scan_all",
+                "to": "data_fetcher_fetch_symbol",
+                "relationship": "data_flow",
+                "data_passed": [
+                    "symbol",
+                    "exchange"
+                ],
+                "impact_if_changed": "Scan workflow breaks if fetch_symbol signature or return format changes"
+            },
+            {
+                "from": "data_fetcher_fetch_symbol",
+                "to": "data_fetcher_calculate_features",
+                "relationship": "data_flow",
+                "data_passed": [
+                    "ohlcv_dataframe"
+                ],
+                "impact_if_changed": "Feature calculation breaks if dataframe format changes"
+            },
+            {
+                "from": "data_fetcher_calculate_features",
+                "to": "watchlist_scan_all",
+                "relationship": "data_flow",
+                "data_passed": [
+                    "features_dict"
+                ],
+                "impact_if_changed": "Model inference breaks if feature names or format changes"
+            },
+            {
+                "from": "watchlist_scan_all",
+                "to": "model_inference_load_models",
+                "relationship": "function_call",
+                "data_passed": [
+                    "symbol"
+                ],
+                "impact_if_changed": "Scan workflow breaks if load_models signature changes"
+            },
+            {
+                "from": "watchlist_scan_all",
+                "to": "model_inference_predict",
+                "relationship": "data_flow",
+                "data_passed": [
+                    "symbol",
+                    "features"
+                ],
+                "impact_if_changed": "Predictions fail if predict signature or return format changes"
+            },
+            {
+                "from": "model_inference_predict",
+                "to": "xgboost_tree_predict",
+                "relationship": "function_call",
+                "data_passed": [
+                    "feature_vector"
+                ],
+                "impact_if_changed": "Inference breaks if tree traversal logic changes"
+            },
+            {
+                "from": "model_inference_predict",
+                "to": "signal_filter_evaluate",
+                "relationship": "data_flow",
+                "data_passed": [
+                    "probabilities_dict"
+                ],
+                "impact_if_changed": "Signal classification breaks if probability format changes"
+            },
+            {
+                "from": "signal_filter_evaluate",
+                "to": "config_manager_get_thresholds",
+                "relationship": "function_call",
+                "data_passed": [],
+                "impact_if_changed": "Signal evaluation breaks if threshold format changes"
+            },
+            {
+                "from": "signal_filter_evaluate",
+                "to": "watchlist_scan_all",
+                "relationship": "data_flow",
+                "data_passed": [
+                    "signal_result"
+                ],
+                "impact_if_changed": "UI display breaks if SignalResult structure changes"
+            },
+            {
+                "from": "watchlist_scan_all",
+                "to": "watchlist_save_stocks",
+                "relationship": "function_call",
+                "data_passed": [],
+                "impact_if_changed": "Persistence breaks if save logic changes"
+            },
+            {
+                "from": "watchlist_load_stocks",
+                "to": "watchlist_screen_init",
+                "relationship": "function_call",
+                "data_passed": [],
+                "impact_if_changed": "Initial load breaks if JSON format changes"
+            },
+            {
+                "from": "watchlist_import_csv",
+                "to": "watchlist_save_stocks",
+                "relationship": "function_call",
+                "data_passed": [],
+                "impact_if_changed": "CSV import persistence breaks"
+            },
+            {
+                "from": "settings_import_models",
+                "to": "model_inference_load_models",
+                "relationship": "indirect_dependency",
+                "data_passed": [
+                    "model_packages"
+                ],
+                "impact_if_changed": "Model import breaks if package structure changes"
+            },
+            {
+                "from": "settings_run_model_test",
+                "to": "model_inference_predict",
+                "relationship": "function_call",
+                "data_passed": [
+                    "symbol",
+                    "dummy_features"
+                ],
+                "impact_if_changed": "Diagnostics break if predict signature changes"
+            }
+        ],
+        "global_conventions": {
+            "naming": {
+                "files": "snake_case",
+                "classes": "PascalCase",
+                "functions": "snake_case",
+                "constants": "SCREAMING_SNAKE_CASE"
+            },
+            "architecture": {
+                "pattern": "Service-oriented with dependency injection",
+                "ui_framework": "Flet (Flutter-based)",
+                "data_flow": "Unidirectional: UI -> Services -> Data Sources",
+                "state_management": "Local state in screens, shared services via DI"
+            },
+            "data_persistence": {
+                "stocks": "stocks.json",
+                "alerts": "alerts.json",
+                "config": "config.json",
+                "cache": "data_cache/{symbol}.json",
+                "models": "assets/models/{symbol}_pkg/"
+            },
+            "error_handling": {
+                "strategy": "Graceful degradation with user notifications",
+                "ui_feedback": "SnackBar for errors and success messages",
+                "logging": "Print statements to console"
+            },
+            "testing": {
+                "location": "Test_py/",
+                "strategy": "Isolated visual harnesses per component",
+                "verification": "Manual testing via test scripts"
+            }
+        }
+    }
+}
